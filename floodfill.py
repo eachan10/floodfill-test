@@ -80,7 +80,6 @@ def floodfill(maze: list[list[Cell]], stdscr, delay=0.1) -> None:
 
         draw_maze(stdscr, maze)
         time.sleep(delay)
-    draw_final_path(stdscr, maze)
     stdscr.refresh()
     return True
 
@@ -94,91 +93,8 @@ def draw_maze(stdscr, maze: list[list[Cell]]) -> None:
     """Draw the maze on a curses screen"""
     for i, row in enumerate(maze):
         for j, cell in enumerate(row):
-            if cell.top:
-                string = "o---o"
-            else:
-                string = "o   o"
-            stdscr.addstr(i * 2, j * 4, string)
-
-            if cell.left:
-                string = "|"
-            else:
-                string = " "
-            stdscr.addstr(i * 2 + 1, j * 4, string)
-
-            if cell.backtracked:
-                col = curses.color_pair(3)
-            elif cell.visited:
-                col = curses.color_pair(2)
-            else:
-                col = curses.color_pair(1)
-
-            stdscr.addstr(i * 2 + 1, j * 4 + 1, "   ", col)
-
-            if cell.right:
-                string = "|"
-            else:
-                string = " "
-            stdscr.addstr(i * 2 + 1, j * 4 + 4, string)
-
-            if cell.bottom:
-                string = "o---o"
-            else:
-                string = "o   o"
-            stdscr.addstr(i * 2 + 2, j * 4, string)
-
-            if cell.start:
-                stdscr.addstr(i * 2 + 1, j * 4 + 2, "S", col)
-            elif cell.end:
-                stdscr.addstr(i * 2 + 1, j * 4 + 2, "G", col)
+            draw_cell(stdscr, maze, i, j)
     stdscr.refresh()
-
-def draw_final_path(stdscr, maze):
-    """Draw the path without backtracks"""
-    cur_r, cur_c = find_start(maze)
-    path = [(cur_r, cur_c)]
-    curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLUE)
-    while not maze[cur_r][cur_c].end:
-        stdscr.addstr(cur_r * 2 + 1, cur_c * 4 + 1, "   ", curses.color_pair(4))
-        # find next unvisited cell in direction of end (center)
-        cur = maze[cur_r][cur_c]
-        if cur.end:
-            break
-        best_way = None
-        best_dist = 100000
-        # check UP
-        if not cur.top and cur_r > 0 and (cur_r - 1, cur_c) not in path:
-            c = maze[cur_r - 1][cur_c]
-            if c.visited and not c.backtracked and (d := distance(cur_r - 1, cur_c)) < best_dist:
-                best_way = cur_r - 1, cur_c
-                best_dist = d
-
-        # check RIGHT
-        if not cur.right and cur_c < 15 and (cur_r, cur_c + 1) not in path:
-            c = maze[cur_r][cur_c + 1]
-            if c.visited and not c.backtracked and (d := distance(cur_r, cur_c + 1)) < best_dist:
-                best_way = cur_r, cur_c + 1
-                best_dist = d
-
-        # check DOWN
-        if not cur.bottom and cur_r < 15 and (cur_r + 1, cur_c) not in path:
-            c = maze[cur_r + 1][cur_c]
-            if c.visited and not c.backtracked and (d := distance(cur_r + 1, cur_c)) < best_dist:
-                best_way = cur_r + 1, cur_c
-                best_dist = d
-
-        # check LEFT
-        if not cur.left and cur_c > 0 and (cur_r, cur_c - 1) not in path:
-            c = maze[cur_r][cur_c - 1]
-            if c.visited and not c.backtracked and (d := distance(cur_r, cur_c - 1)) < best_dist:
-                best_way = cur_r, cur_c - 1
-                best_dist = d
-        
-        path.append(best_way)
-        if best_way is not None:
-            cur_r, cur_c = best_way
-        else:
-            break
 
 
 def find_start(maze: list[list[Cell]]) -> tuple[int, int]:
@@ -187,3 +103,69 @@ def find_start(maze: list[list[Cell]]) -> tuple[int, int]:
         for j, cell in enumerate(row):
             if cell.start:
                 return i, j
+            
+
+def draw_cell(stdscr, maze: list[list[Cell]], row: int, col: int, color_override: int = None) -> None:
+    """Draw a cell"""
+    cell = maze[row][col]
+    # upper border
+    string = "█████" if cell.top else "█   █"
+    color = curses.color_pair(1)
+    if row > 0 and maze[row-1][col].visited:
+        if cell.backtracked:
+            color = curses.color_pair(3)
+        elif cell.visited:
+            if maze[row-1][col].backtracked:
+                color = curses.color_pair(3)
+            else:
+                color = curses.color_pair(2)
+    stdscr.addstr(row*2, col*4, string, color_override or color)
+
+    # left border
+    string = "█" if cell.left else " "
+    color = curses.color_pair(1)
+    if col > 0 and maze[row][col-1].visited:
+        if cell.backtracked:
+            color = curses.color_pair(3)
+        elif cell.visited:
+            if maze[row][col-1].backtracked:
+                color = curses.color_pair(3)
+            else:
+                color = curses.color_pair(2)
+    stdscr.addstr(row*2 + 1, col*4, string, color_override or color)
+
+    # right border
+    string = "█" if cell.right else " "
+    color = curses.color_pair(1)
+    if col < 15 and maze[row][col+1].visited:
+        if cell.backtracked:
+            color = curses.color_pair(3)
+        elif cell.visited:
+            if maze[row][col+1].backtracked:
+                color = curses.color_pair(3)
+            else:
+                color = curses.color_pair(2)
+    stdscr.addstr(row*2 + 1, col*4 + 4, string, color_override or color)
+
+    # bottom border
+    string = "█████" if cell.bottom else "█   █"
+    color = curses.color_pair(1)
+    if row < 15 and maze[row+1][col].visited:
+        if cell.backtracked:
+            color = curses.color_pair(3)
+        elif cell.visited:
+            if maze[row+1][col].backtracked:
+                color = curses.color_pair(3)
+            else:
+                color = curses.color_pair(2)
+    stdscr.addstr(row*2 + 2, col*4, string, color_override or color)
+
+    # middle
+    string = " S " if cell.start else " G " if cell.end else "   "
+    if cell.backtracked:
+        color = curses.color_pair(3)
+    elif cell.visited:
+        color = curses.color_pair(2)
+    else:
+        color = curses.color_pair(1)
+    stdscr.addstr(row*2 + 1, col*4 + 1, string, color_override or color)
