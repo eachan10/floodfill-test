@@ -1,35 +1,27 @@
 from cell import Cell
-from parse import parse
 
 import curses
 import math
 import time
 
 
-# instead of simply marking that a cell has been visited
-# track the direction it took to reach it
-# so if you need to backtrack while on that cell, can just reverse that direction
-
-
-
 def floodfill(maze: list[list[Cell]], stdscr, delay=0.1) -> None:
     """Simulate the floodfill algo on a maze"""
-    # TODO: figure out how to handle loops in the maze
-    # can track direction and turn around when stopped
-
     # move toward end of maze in next square that hasn't been covered
     # if blocked on all size, backtrack until reached new path
-    # indicate backtracked with a double mark on the square
+    # backtrack by going reverse of the direction by which the cell was reached
+    # indicate if a cell has been backtracked
     cur_r, cur_c = find_start(maze)
     maze[cur_r][cur_c].visited = True
 
     draw_maze(stdscr, maze)
     time.sleep(delay)
     while not maze[cur_r][cur_c].end:
-        # find next unvisited cell in direction of end (center)
         cur = maze[cur_r][cur_c]
         if cur.end:
             break
+        # find next unvisited cell in direction of end (center)
+        # if there are multiple choose closest to end
         best_way = None
         best_dist = 100000
         # check UP
@@ -68,11 +60,12 @@ def floodfill(maze: list[list[Cell]], stdscr, delay=0.1) -> None:
         if best_way is not None:
             cur_r, cur_c = best_way
             maze[cur_r][cur_c].visited = move_dir
+        # if no unvisited cell to go to
+        #   backtrack and mark last cell as backtracked
         else:
-            # if no unvisited cell to go to
-            #   backtrack and mark last cell backtracked
             cur.backtracked = True
-            # find way to backtrack should only have one way to go back
+
+            # trace in reverse the way the current cell was reached
             if cur.visited == "UP":
                 cur_r, cur_c = cur_r + 1, cur_c
             elif cur.visited == "RIGHT":
@@ -83,11 +76,13 @@ def floodfill(maze: list[list[Cell]], stdscr, delay=0.1) -> None:
                 cur_r, cur_c = cur_r, cur_c + 1
             else:
                 print("what the fuck bozo")
+                return False
 
         draw_maze(stdscr, maze)
         time.sleep(delay)
     draw_final_path(stdscr, maze)
     stdscr.refresh()
+    return True
 
 
 def distance(row: int, col: int) -> float:
