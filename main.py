@@ -34,7 +34,7 @@ def main(stdscr):
         with open(f"mazes/{maze}") as f:
             maze = parse(f.readlines())
         floodfill(maze, stdscr, DELAY)
-        time.sleep(1)
+        time.sleep(2)
     stdscr.addstr(0, 67, "DONE")
     stdscr.getch()
 
