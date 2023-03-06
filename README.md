@@ -1,1 +1,2 @@
-# floodfill-test
+# Floodfill Test
+Test floodfill algorithm for micromouse.
